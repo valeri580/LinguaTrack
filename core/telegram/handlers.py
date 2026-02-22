@@ -3,7 +3,7 @@
 """
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 
 router = Router()
 
@@ -15,6 +15,48 @@ HELP_TEXT = """Доступные команды:
 /test — пройти тест
 /say слово — озвучить слово
 /help — список команд"""
+
+
+@router.message(Command('say'))
+async def cmd_say(message: Message) -> None:
+    """Обработка команды /say."""
+    import django
+    django.setup()
+
+    import tempfile
+    from pathlib import Path
+
+    from core.models import UserProfile
+
+    telegram_id = message.from_user.id if message.from_user else None
+    if not telegram_id:
+        await message.answer('Ошибка.')
+        return
+
+    try:
+        profile = UserProfile.objects.get(telegram_id=telegram_id)
+    except UserProfile.DoesNotExist:
+        await message.answer('Аккаунт не привязан. Сначала зарегистрируйтесь на сайте.')
+        return
+
+    args = message.text.split(maxsplit=1)
+    word = args[1].strip() if len(args) > 1 else ''
+    if not word:
+        await message.answer('Использование: /say слово')
+        return
+
+    try:
+        from gtts import gTTS
+
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+            path = Path(f.name)
+        gTTS(text=word, lang='en').save(path)
+        try:
+            await message.answer_voice(voice=FSInputFile(path))
+        finally:
+            path.unlink(missing_ok=True)
+    except Exception:
+        await message.answer('Не удалось сгенерировать озвучку.')
 
 
 @router.message(Command('help'))
@@ -132,6 +174,8 @@ async def callback_rate(callback: CallbackQuery) -> None:
     except Card.DoesNotExist:
         await callback.answer('Карточка не найдена.')
         return
+
+    await callback.message.delete_reply_markup()
 
     ReviewLog.objects.create(
         card=card,
