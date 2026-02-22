@@ -50,11 +50,12 @@ async def cmd_say(message: Message) -> None:
 
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
             path = Path(f.name)
-        gTTS(text=word, lang='en').save(path)
         try:
+            gTTS(text=word, lang='en').save(path)
             await message.answer_voice(voice=FSInputFile(path))
         finally:
-            path.unlink(missing_ok=True)
+            if path.exists():
+                path.unlink()
     except Exception:
         await message.answer('Не удалось сгенерировать озвучку.')
 

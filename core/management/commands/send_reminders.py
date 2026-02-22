@@ -40,13 +40,17 @@ class Command(BaseCommand):
             asyncio.run(self._send_all(to_notify, today))
 
     async def _send_all(self, profiles, today):
-        for profile in profiles:
-            try:
-                await bot.send_message(
-                    chat_id=profile.telegram_id,
-                    text=REMINDER_TEXT,
-                )
-                profile.last_notification_date = today
-                profile.save()
-            except Exception as e:
-                self.stderr.write(f'Ошибка отправки пользователю {profile.user.username}: {e}')
+        try:
+            for profile in profiles:
+                try:
+                    await bot.send_message(
+                        chat_id=profile.telegram_id,
+                        text=REMINDER_TEXT,
+                    )
+                    profile.last_notification_date = today
+                    profile.save()
+                except Exception as e:
+                    self.stderr.write(f'Ошибка отправки пользователю {profile.user.username}: {e}')
+        finally:
+            if hasattr(bot, 'session') and bot.session:
+                await bot.session.close()
