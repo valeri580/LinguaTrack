@@ -6,6 +6,12 @@
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+    {% if card %}
+    <p>
+        <label for="id_next_review">Дата следующего повторения:</label>
+        <input type="date" name="next_review" value="{{ card.schedule.next_review|date:'Y-m-d' }}" id="id_next_review" class="form-control">
+    </p>
+    {% endif %}
     <button type="submit" class="btn btn-primary">Сохранить</button>
     <a href="{% url 'card_list' %}" class="btn btn-secondary">Отмена</a>
 </form>

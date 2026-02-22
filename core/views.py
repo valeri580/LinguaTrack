@@ -1,4 +1,5 @@
 import random
+from datetime import datetime
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -63,10 +64,14 @@ def card_edit(request, pk):
         form = CardForm(request.POST, instance=card)
         if form.is_valid():
             form.save()
+            next_review = request.POST.get('next_review')
+            if next_review:
+                card.schedule.next_review = datetime.strptime(next_review, '%Y-%m-%d').date()
+                card.schedule.save()
             return redirect('card_list')
     else:
         form = CardForm(instance=card)
-    return render(request, 'core/card_form.html', {'form': form, 'title': 'Редактирование карточки'})
+    return render(request, 'core/card_form.html', {'form': form, 'title': 'Редактирование карточки', 'card': card})
 
 
 @login_required
