@@ -58,6 +58,7 @@ class UserProfile(models.Model):
     """Хранит telegram_id (эквивалент User.telegram_id)."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     telegram_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    last_notification_date = models.DateField(null=True, blank=True)
 
 
 class TelegramLinkToken(models.Model):
