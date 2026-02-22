@@ -1,9 +1,9 @@
 """
 Обработчики команд Telegram-бота.
 """
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
 
@@ -21,6 +21,134 @@ HELP_TEXT = """Доступные команды:
 async def cmd_help(message: Message) -> None:
     """Обработка команды /help."""
     await message.answer(HELP_TEXT)
+
+
+def _get_today_cards(profile):
+    """Карточки на сегодня для пользователя."""
+    from django.utils import timezone
+    from core.models import Card
+
+    today = timezone.now().date()
+    return Card.objects.filter(
+        user=profile.user,
+        schedule__next_review__lte=today,
+    ).order_by('schedule__next_review')
+
+
+def _show_card_word(card):
+    """Клавиатура: Показать перевод."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Показать перевод', callback_data=f'show_{card.pk}')]
+    ])
+
+
+def _show_card_rating(card):
+    """Клавиатура: кнопки 0-5."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=str(i), callback_data=f'rate_{card.pk}_{i}')
+            for i in range(6)
+        ]
+    ])
+
+
+@router.message(Command('test'))
+async def cmd_test(message: Message) -> None:
+    """Обработка команды /test."""
+    import django
+    django.setup()
+
+    from core.models import UserProfile
+
+    telegram_id = message.from_user.id if message.from_user else None
+    if not telegram_id:
+        await message.answer('Ошибка.')
+        return
+
+    try:
+        profile = UserProfile.objects.get(telegram_id=telegram_id)
+    except UserProfile.DoesNotExist:
+        await message.answer('Аккаунт не привязан. Сначала зарегистрируйтесь на сайте.')
+        return
+
+    cards = _get_today_cards(profile)
+    if not cards:
+        await message.answer('На сегодня нет слов для тестирования.')
+        return
+
+    card = cards.first()
+    await message.answer(card.word, reply_markup=_show_card_word(card))
+
+
+@router.callback_query(F.data.startswith('show_'))
+async def callback_show(callback: CallbackQuery) -> None:
+    """Показать перевод карточки."""
+    import django
+    django.setup()
+
+    from core.models import Card, UserProfile
+
+    telegram_id = callback.from_user.id if callback.from_user else None
+    try:
+        profile = UserProfile.objects.get(telegram_id=telegram_id)
+    except UserProfile.DoesNotExist:
+        await callback.answer('Аккаунт не привязан.')
+        return
+
+    card_id = int(callback.data.split('_')[1])
+    try:
+        card = Card.objects.get(pk=card_id, user=profile.user)
+    except Card.DoesNotExist:
+        await callback.answer('Карточка не найдена.')
+        return
+
+    text = f'{card.word}\n\n{card.translation}'
+    await callback.message.edit_text(text, reply_markup=_show_card_rating(card))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith('rate_'))
+async def callback_rate(callback: CallbackQuery) -> None:
+    """Оценка карточки и переход к следующей."""
+    import django
+    django.setup()
+
+    from core.models import Card, UserProfile, ReviewLog
+    from core.srs import update_schedule
+
+    telegram_id = callback.from_user.id if callback.from_user else None
+    try:
+        profile = UserProfile.objects.get(telegram_id=telegram_id)
+    except UserProfile.DoesNotExist:
+        await callback.answer('Аккаунт не привязан.')
+        return
+
+    parts = callback.data.split('_')
+    card_id = int(parts[1])
+    quality = int(parts[2])
+
+    try:
+        card = Card.objects.get(pk=card_id, user=profile.user)
+    except Card.DoesNotExist:
+        await callback.answer('Карточка не найдена.')
+        return
+
+    ReviewLog.objects.create(
+        card=card,
+        user=profile.user,
+        quality=quality,
+        is_correct=quality >= 3,
+    )
+    update_schedule(card.schedule, quality)
+
+    cards = _get_today_cards(profile)
+    if not cards:
+        await callback.message.edit_text('Тест завершён. На сегодня слов больше нет.')
+    else:
+        card = cards.first()
+        await callback.message.edit_text(card.word, reply_markup=_show_card_word(card))
+
+    await callback.answer()
 
 
 @router.message(Command('today'))
