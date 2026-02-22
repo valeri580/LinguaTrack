@@ -1,11 +1,12 @@
-from datetime import date
+import random
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 
-from .models import Card
+from .models import Card, ReviewLog
 from .forms import CardForm
 from .srs import update_schedule
 
@@ -81,7 +82,7 @@ def card_delete(request, pk):
 @login_required
 def review_today(request):
     """Повторение карточек на сегодня."""
-    today = date.today()
+    today = timezone.now().date()
     cards = Card.objects.filter(
         user=request.user,
         schedule__next_review__lte=today,
@@ -96,22 +97,54 @@ def review_today(request):
 
         if quality is not None:
             card = get_object_or_404(Card, pk=card_id, user=request.user)
-            update_schedule(card.schedule, int(quality))
+            quality_int = int(quality)
+            ReviewLog.objects.create(
+                card=card,
+                user=request.user,
+                quality=quality_int,
+                is_correct=quality_int >= 3,
+            )
+            update_schedule(card.schedule, quality_int)
             return redirect('review_today')
 
-        return redirect(f"{reverse('review_today')}?card={card_id}&revealed=1")
+        reverse_dir = request.POST.get('reverse', '0') == '1'
+        return redirect(f"{reverse('review_today')}?card={card_id}&revealed=1&reverse={'1' if reverse_dir else '0'}")
 
     card_id = request.GET.get('card')
     revealed = request.GET.get('revealed')
+    reverse_dir = request.GET.get('reverse') == '1'
 
     if card_id:
         card = get_object_or_404(Card, pk=card_id, user=request.user)
         if card not in cards:
             card = cards.first()
+            reverse_dir = random.choice([True, False])
     else:
         card = cards.first()
+        reverse_dir = random.choice([True, False])
 
     return render(request, 'core/review.html', {
         'card': card,
         'revealed': revealed,
+        'reverse': reverse_dir,
+    })
+
+
+@login_required
+def progress_view(request):
+    """Статистика прогресса."""
+    user = request.user
+
+    total_words = Card.objects.filter(user=user).count()
+    learned_words = Card.objects.filter(user=user, schedule__repetition__gte=3).count()
+    total_reviews = ReviewLog.objects.filter(user=user).count()
+    total_errors = ReviewLog.objects.filter(user=user, is_correct=False).count()
+    success_rate = ((total_reviews - total_errors) / total_reviews * 100) if total_reviews > 0 else None
+
+    return render(request, 'core/progress.html', {
+        'total_words': total_words,
+        'learned_words': learned_words,
+        'total_reviews': total_reviews,
+        'total_errors': total_errors,
+        'success_rate': success_rate,
     })

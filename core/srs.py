@@ -1,7 +1,9 @@
 """
 Алгоритм интервального повторения SM-2.
 """
-from datetime import date, timedelta
+from datetime import timedelta
+
+from django.utils import timezone
 
 
 def update_schedule(schedule, quality):
@@ -10,7 +12,7 @@ def update_schedule(schedule, quality):
 
     quality — целое число от 0 до 5 (оценка recall).
     """
-    today = date.today()
+    today = timezone.now().date()
 
     # Обновление easiness_factor по формуле SM-2
     ef = schedule.easiness_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))

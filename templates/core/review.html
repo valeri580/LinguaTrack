@@ -8,10 +8,10 @@
 {% else %}
 <div class="card mb-4">
     <div class="card-body">
-        <h2 class="card-title">{{ card.word }}</h2>
+        <h2 class="card-title">{% if reverse %}{{ card.translation }}{% else %}{{ card.word }}{% endif %}</h2>
 
         {% if revealed %}
-        <p class="card-text fs-4 text-muted">{{ card.translation }}</p>
+        <p class="card-text fs-4 text-muted">{% if reverse %}{{ card.word }}{% else %}{{ card.translation }}{% endif %}</p>
         {% if card.example %}<p class="card-text"><em>{{ card.example }}</em></p>{% endif %}
 
         <p class="mt-3">Насколько хорошо вспомнили?</p>
@@ -26,6 +26,7 @@
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="card_id" value="{{ card.pk }}">
+            <input type="hidden" name="reverse" value="{% if reverse %}1{% else %}0{% endif %}">
             <button type="submit" class="btn btn-primary">Показать перевод</button>
         </form>
         {% endif %}

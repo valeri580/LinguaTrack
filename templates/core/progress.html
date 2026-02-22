@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Прогресс</h1>
+
+<div class="mb-4">
+    <p class="mb-1"><strong>Всего слов:</strong> {{ total_words }}</p>
+    <p class="mb-1"><strong>Выучено слов:</strong> {{ learned_words }}</p>
+    <p class="mb-1"><strong>Всего повторений:</strong> {{ total_reviews }}</p>
+    <p class="mb-1"><strong>Ошибок:</strong> {{ total_errors }}</p>
+    {% if success_rate is not None %}
+    <p class="mb-1"><strong>Процент успеха:</strong> {{ success_rate|floatformat:1 }}%</p>
+    {% endif %}
+</div>
+{% endblock %}

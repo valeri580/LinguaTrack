@@ -1,6 +1,5 @@
-from datetime import date
-
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import User
 
 
@@ -34,7 +33,7 @@ class Card(models.Model):
                 repetition=0,
                 interval=0,
                 easiness_factor=2.5,
-                next_review=date.today(),
+                next_review=timezone.now().date(),
             )
 
 
@@ -45,3 +44,11 @@ class Schedule(models.Model):
     easiness_factor = models.FloatField(default=2.5)
     next_review = models.DateField()
     last_reviewed = models.DateField(null=True, blank=True)
+
+
+class ReviewLog(models.Model):
+    card = models.ForeignKey(Card, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    quality = models.IntegerField()
+    is_correct = models.BooleanField()
+    reviewed_at = models.DateTimeField(auto_now_add=True)
