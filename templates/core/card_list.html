@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Мои карточки</h1>
+
+<div class="mb-3">
+    <form method="get" class="d-flex gap-2">
+        <select name="difficulty" class="form-select" style="width: auto;">
+            <option value="">Все уровни</option>
+            <option value="beginner" {% if request.GET.difficulty == 'beginner' %}selected{% endif %}>Начальный</option>
+            <option value="middle" {% if request.GET.difficulty == 'middle' %}selected{% endif %}>Средний</option>
+            <option value="advanced" {% if request.GET.difficulty == 'advanced' %}selected{% endif %}>Продвинутый</option>
+        </select>
+        <button type="submit" class="btn btn-outline-primary">Фильтровать</button>
+    </form>
+</div>
+
+<p><a href="{% url 'card_create' %}" class="btn btn-primary">Добавить карточку</a></p>
+
+{% if cards %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Слово</th>
+            <th>Перевод</th>
+            <th>Уровень</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for card in cards %}
+        <tr>
+            <td>{{ card.word }}</td>
+            <td>{{ card.translation }}</td>
+            <td>{{ card.get_difficulty_display }}</td>
+            <td>
+                <a href="{% url 'card_edit' card.pk %}" class="btn btn-sm btn-outline-secondary">Изменить</a>
+                <a href="{% url 'card_delete' card.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Карточек пока нет.</p>
+{% endif %}
+{% endblock %}
