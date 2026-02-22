@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Привязка Telegram</h1>
+<p>Нажмите на ссылку ниже, чтобы привязать аккаунт к Telegram:</p>
+<p><a href="{{ link }}" target="_blank" class="btn btn-primary">{{ link }}</a></p>
+<p class="text-muted">Ссылка одноразовая. После привязки нажмите /start в боте.</p>
+{% endblock %}

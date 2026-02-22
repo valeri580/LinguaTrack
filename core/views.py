@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime
 
@@ -7,7 +8,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from .models import Card, ReviewLog
+from .models import Card, ReviewLog, TelegramLinkToken
 from .forms import CardForm
 from .srs import update_schedule
 
@@ -133,6 +134,17 @@ def review_today(request):
         'revealed': revealed,
         'reverse': reverse_dir,
     })
+
+
+@login_required
+def telegram_link(request):
+    """Генерация ссылки для привязки Telegram."""
+    import secrets
+    token = secrets.token_urlsafe(32)
+    TelegramLinkToken.objects.create(user=request.user, token=token)
+    bot_username = os.getenv('TELEGRAM_BOT_USERNAME', 'LinguaTrackBot')
+    url = f'https://t.me/{bot_username}?start={token}'
+    return render(request, 'core/telegram_link.html', {'link': url})
 
 
 @login_required

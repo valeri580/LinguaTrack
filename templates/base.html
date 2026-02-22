@@ -15,6 +15,7 @@
                     <a class="nav-link" href="{% url 'review_today' %}">Повторение</a>
                     <a class="nav-link" href="{% url 'card_list' %}">Мои карточки</a>
                     <a class="nav-link" href="{% url 'progress' %}">Прогресс</a>
+                    <a class="nav-link" href="{% url 'telegram_link' %}">Telegram</a>
                     <span class="navbar-text me-3">{{ user.username }}</span>
                     <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
                 {% else %}

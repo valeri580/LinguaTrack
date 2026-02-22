@@ -52,3 +52,16 @@ class ReviewLog(models.Model):
     quality = models.IntegerField()
     is_correct = models.BooleanField()
     reviewed_at = models.DateTimeField(auto_now_add=True)
+
+
+class UserProfile(models.Model):
+    """Хранит telegram_id (эквивалент User.telegram_id)."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    telegram_id = models.BigIntegerField(null=True, blank=True, unique=True)
+
+
+class TelegramLinkToken(models.Model):
+    """Одноразовый токен для привязки Telegram."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
